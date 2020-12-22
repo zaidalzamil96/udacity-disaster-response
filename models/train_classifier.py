@@ -1,4 +1,4 @@
- import libraries
+# import libraries
 import pandas as pd
 from sqlalchemy import create_engine
 
@@ -27,17 +27,19 @@ import sys
 
 
 def load_data(database_filepath):
+    # load data from database
     engine = create_engine('sqlite:///' + database_filepath)
     df = pd.read_sql_table('disaster_responses', engine)
     X = df.iloc[:, :4].values
     Y = df.iloc[:, 4:].values
     categories_names= df.columns[4:]
 
-    return x, y, categories_names
+    return X, Y, categories_names
 
 
 
 def tokenize(text):
+    # tokenize the text and lemmatize it
     tokens = word_tokenize(text)
     lem = WordNetLemmatizer()
     clean_tokens = [lem.lemmatize(token).lower().strip() for token in tokens]
@@ -45,6 +47,7 @@ def tokenize(text):
 
 
 def build_model():
+    # build the classification model
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -62,6 +65,7 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    # print the evaluation of each category classification
     Y_pred = model.predict(X_test)
 
     for cat_idx in range(Y_test[0, :].shape[0]):
