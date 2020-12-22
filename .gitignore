@@ -1,3 +1,6 @@
 ETL Pipeline Preparation.ipynb
 ML Pipeline Preparation.ipynb
 rubric.pdf
+.ipynb_checkpoints/
+.idea/
+models/model.pkl

@@ -1,25 +1,76 @@
+ import libraries
+import pandas as pd
+from sqlalchemy import create_engine
+
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import CountVectorizer,TfidfTransformer
+nltk.download('punkt')
+nltk.download('wordnet')
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.multioutput import MultiOutputClassifier
+
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
+
+from sklearn.metrics import classification_report
+import pickle
+
+
+
+
 import sys
 
 
 def load_data(database_filepath):
-    pass
+    engine = create_engine('sqlite:///' + database_filepath)
+    df = pd.read_sql_table('disaster_responses', engine)
+    X = df.iloc[:, :4].values
+    Y = df.iloc[:, 4:].values
+    categories_names= df.columns[4:]
+
+    return x, y, categories_names
+
 
 
 def tokenize(text):
-    pass
+    tokens = word_tokenize(text)
+    lem = WordNetLemmatizer()
+    clean_tokens = [lem.lemmatize(token).lower().strip() for token in tokens]
+    return clean_tokens
 
 
 def build_model():
-    pass
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ('clf', MultiOutputClassifier(RandomForestClassifier()))
+    ])
+    parameters = {
+        'vect__ngram_range': [(1, 1), (1, 2)],
+        'vect__max_df': [0.5, 0.75, 1],
+        'vect__max_features': [None, 5000, 10000],
+        'tfidf__use_idf': [True, False]
+    }
+
+    cv = GridSearchCV(pipeline, param_grid=parameters)
+    return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    Y_pred = model.predict(X_test)
 
+    for cat_idx in range(Y_test[0, :].shape[0]):
+        target_names = [f'{category_names[cat_idx]}-{i}' for i in pd.Series(Y_test[:, cat_idx]).unique()]
+        print(classification_report(Y_test[:, cat_idx], Y_pred[:, cat_idx], zero_division=0, target_names=target_names))
 
 def save_model(model, model_filepath):
-    pass
-
+    with open(model_filepath, "wb") as file:
+        pickle.dump(model, file)
 
 def main():
     if len(sys.argv) == 3:

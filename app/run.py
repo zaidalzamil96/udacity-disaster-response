@@ -8,7 +8,7 @@ from nltk.tokenize import word_tokenize
 from flask import Flask
 from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
-from sklearn.externals import joblib
+import joblib
 from sqlalchemy import create_engine
 
 
@@ -26,18 +26,18 @@ def tokenize(text):
     return clean_tokens
 
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/disasterresponse.db')
+df = pd.read_sql_table('disaster_responses', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("../models/model.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
 @app.route('/index')
 def index():
-    
+    print("Load Main Page...")
     # extract data needed for visuals
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
@@ -66,6 +66,58 @@ def index():
         }
     ]
     
+    categories_dist = df.iloc[:, 4:].sum()
+    graphs.append({
+            'data': [
+                Bar(
+                    x=categories_dist.index,
+                    y=categories_dist.values
+                )
+            ],
+            'layout': {
+                'title': 'Distribution of Message Genres',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "categories"
+                }
+            }
+        })
+    categories_dist = df.groupby('genre').sum().iloc[:,1:]
+    graphs.append( {
+            'data': [
+                Bar(
+                    name = 'direct',
+                    x=categories_dist.columns,
+                    y=categories_dist.loc['direct',:]
+                ),
+                 
+                Bar(
+                    name= 'news',
+                    x=categories_dist.columns,
+                    y=categories_dist.loc['news',:]
+                ),
+                 Bar(
+                     name='social',
+                    x=categories_dist.columns,
+                    y=categories_dist.loc['social',:]
+                )
+            ],
+            'layout': {
+                'title': 'Distribution of Message Genres',
+                'barmode':'stack',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "categories"
+                }
+            }
+        })
+   
+    
+    
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
@@ -93,7 +145,7 @@ def go():
 
 
 def main():
-    app.run(host='0.0.0.0', port=3001, debug=True)
+    app.run(host='127.0.0.1', port=3001, debug=True)
 
 
 if __name__ == '__main__':
