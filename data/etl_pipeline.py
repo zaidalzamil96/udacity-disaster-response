@@ -31,6 +31,10 @@ def clean_data(df):
 
         # convert column from string to numeric
         categories[column] = categories[column].astype(int)
+
+    # replace the value with 2 with value of 1 to convert it to binary
+    categories["related"] = categories["related"].replace(2, 1)
+
     # drop the original categories column from `df`
     df.drop(columns="categories", inplace=True)
     # concatenate the original dataframe with the new `categories` dataframe
@@ -41,6 +45,7 @@ def clean_data(df):
     return df
 
 def save_data(df, database_filename):
+    # save the DataFrame data to the file in path database_filename
     engine = create_engine('sqlite:///' + database_filename )
     df.to_sql('disaster_responses', engine, index=False)
 

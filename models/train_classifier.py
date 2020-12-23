@@ -11,7 +11,6 @@ nltk.download('wordnet')
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.naive_bayes import GaussianNB
 from sklearn.multioutput import MultiOutputClassifier
 
 from sklearn.pipeline import Pipeline
@@ -27,7 +26,14 @@ import sys
 
 
 def load_data(database_filepath):
-    # load data from database
+    """
+    read data from the database and separate it to features and labels, it also extract categories' names
+    :param database_filepath: the path to the database
+    :return:
+    ndarray: contain the features
+    ndarray: contain the labels
+    array: contains the categories' names
+    """
     engine = create_engine('sqlite:///' + database_filepath)
     df = pd.read_sql_table('disaster_responses', engine)
     X = df.iloc[:, :4].values
@@ -39,15 +45,25 @@ def load_data(database_filepath):
 
 
 def tokenize(text):
-    # tokenize the text and lemmatize it
+    """
+    tokenize the text into words and lemmatize it
+    :param text:
+    :return:
+    list: list of the cleaned words
+    """
     tokens = word_tokenize(text)
     lem = WordNetLemmatizer()
+
     clean_tokens = [lem.lemmatize(token).lower().strip() for token in tokens]
     return clean_tokens
 
 
 def build_model():
-    # build the classification model
+    """
+    build the classification model using pipeline and GridSearch
+    :return:
+    GridSearchCV: the classification model
+    """
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -65,7 +81,13 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    # print the evaluation of each category classification
+    """
+    make the prediction using X_test then print the evaluation of the prediction of each category
+    :param model: the classification
+    :param X_test: ndarray of the features test data
+    :param Y_test: ndarray of the labels test data
+    :param category_names: list of the categories' names
+    """
     Y_pred = model.predict(X_test)
 
     for cat_idx in range(Y_test[0, :].shape[0]):
@@ -73,6 +95,11 @@ def evaluate_model(model, X_test, Y_test, category_names):
         print(classification_report(Y_test[:, cat_idx], Y_pred[:, cat_idx], zero_division=0, target_names=target_names))
 
 def save_model(model, model_filepath):
+    """
+    write the classification model to a pickle file
+    :param model: the classification model
+    :param model_filepath: the path to the file
+    """
     with open(model_filepath, "wb") as file:
         pickle.dump(model, file)
 
@@ -81,7 +108,7 @@ def main():
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+        X_train, X_test, Y_train, Y_test = train_test_split(X[:, 1], Y, test_size=0.2)
         
         print('Building model...')
         model = build_model()
